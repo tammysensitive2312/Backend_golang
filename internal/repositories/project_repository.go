@@ -42,20 +42,44 @@ func (p ProjectRepository) Update(ctx context.Context, pj *entities.Project) (*e
 	panic("err")
 }
 
+// Delete removes a project from the database by its name.
+//
+// The function accepts a context and a project name as parameters.
+// It uses the provided context to ensure that the operation is performed within the specified deadline.
+//
+// The function first attempts to find a project with the given name in the database.
+// If no project is found, it logs an error message and returns false.
+// If an error occurs during the search process, it logs the error message and returns false.
+//
+// If a project is found, the function proceeds to delete the project from the database.
+// If an error occurs during the deletion process, it logs an error message and returns false.
+// If no project is deleted (i.e., RowsAffected is 0), it logs an error message and returns false.
+//
+// If the project is successfully deleted, it logs an informational message and returns true.
 func (p ProjectRepository) Delete(ctx context.Context, name string) bool {
 	var project entities.Project
-	if err := p.db.WithContext(ctx).First(&project, name).Error; err != nil {
-		log.Error("Having error when find project: ", name, err)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			fmt.Errorf("project %v not found", project)
+	err := p.db.WithContext(ctx).Where("name = ?", name).First(&project)
+	if err.Error != nil {
+		if errors.Is(err.Error, gorm.ErrRecordNotFound) {
+			log.Errorf("Project with name '%s' not found", name)
 			return false
 		}
-	} else {
-		if err := p.db.WithContext(ctx).Delete(&project).Error; err != nil {
-			log.Error("failed to delete project: ", name, err)
-			return false
-		}
+		log.Errorf("Error when finding project with name '%s': %v", name, err.Error)
+		return false
 	}
+
+	result := p.db.WithContext(ctx).Delete(&project)
+	if result.Error != nil {
+		log.Errorf("Failed to delete project with name '%s': %v", name, result.Error)
+		return false
+	}
+
+	if result.RowsAffected == 0 {
+		log.Errorf("No project deleted with name '%s'", name)
+		return false
+	}
+
+	log.Infof("Successfully deleted project with name '%s'", name)
 	return true
 }
 
