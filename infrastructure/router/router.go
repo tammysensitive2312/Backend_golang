@@ -19,6 +19,10 @@ func NewRegisterRouters(p RegisterRoutersIn) {
 		projectGroup := v1.Group("projects")
 		{
 			projectGroup.POST("/create", p.ProjectHandler.Create)
+			projectGroup.GET("/:id", p.ProjectHandler.GetById)
+			projectGroup.DELETE("/:name", p.ProjectHandler.Delete)
+			projectGroup.PUT("/:id", p.ProjectHandler.Update)
+			projectGroup.GET("/all", p.ProjectHandler.GetProjects)
 		}
 	}
 }

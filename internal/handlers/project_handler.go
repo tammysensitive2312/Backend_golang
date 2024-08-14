@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 type ProjectHandler struct {
@@ -70,13 +72,90 @@ func (h *ProjectHandler) Create(ctx *gin.Context) {
 }
 
 func (h *ProjectHandler) GetById(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
 
+	project, err := h.service.GetById(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user", "details": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"project": gin.H{
+			"ID":                project.ID,
+			"Name":              project.Name,
+			"Category":          project.Category,
+			"ProjectVariance":   project.ProjectVariance,
+			"RevenueRecognised": project.RevenueRecognised,
+			"ProjectSpend":      project.ProjectSpend,
+			"ProjectStartedAt":  project.ProjectStartedAt,
+			"CreatedAt":         project.CreatedAt,
+			"UpdatedAt":         project.UpdatedAt,
+			"ProjectEndedAt":    project.ProjectEndedAt,
+		},
+	})
 }
 
 func (h *ProjectHandler) Delete(ctx *gin.Context) {
+	name := ctx.Param("name")
 
+	err := h.service.Delete(ctx, name)
+	if err != nil {
+		// Trả về lỗi nếu xóa thất bại
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Trả về phản hồi thành công nếu xóa thành công
+	ctx.JSON(http.StatusOK, gin.H{"message": "Project deleted successfully", "name": name})
 }
 
-func (h *ProjectHandler) Update(ctx *gin.Context) {
+func (h *ProjectHandler) Update(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
 
+	// 2. Bind JSON request body vào struct UpdateProjectRequest
+	var req dto.UpdateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 3. Gọi service để cập nhật project
+	updatedProject, err := h.service.Update(c.Request.Context(), id, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to update project",
+				"details": err,
+			})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedProject)
+}
+
+func (h *ProjectHandler) GetProjects(ctx *gin.Context) {
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("pageSize", "10"))
+
+	// Gọi service để lấy danh sách project với phân trang
+	pagination, err := h.service.GetProjectList(ctx, page, pageSize)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve projects", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, pagination)
 }

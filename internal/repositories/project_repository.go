@@ -14,10 +14,41 @@ type IProjectRepository interface {
 	Update(ctx context.Context, pj *entities.Project) (*entities.Project, error)
 	Delete(ctx context.Context, name string) bool
 	GetById(ctx context.Context, id int) (*entities.Project, error)
+	GetList(ctx context.Context, page int, pageSize int) (*Pagination, error)
 }
 
 type ProjectRepository struct {
 	base
+}
+
+func (p ProjectRepository) GetList(ctx context.Context, page int, pageSize int) (*Pagination, error) {
+	var projectList []entities.Project
+	var totalRecords int64
+
+	// đếm tổng số bản ghi
+	if err := p.db.WithContext(ctx).Model(&entities.Project{}).Count(&totalRecords).Error; err != nil {
+		return nil, err
+	}
+	// tính số trang
+	totalPages := int(totalRecords) / pageSize
+	if int(totalRecords)%pageSize != 0 {
+		totalPages++
+	}
+
+	// lấy dữ liệu cho trang hiện tại
+	offset := (page - 1) * pageSize
+	if err := p.db.WithContext(ctx).Limit(pageSize).Offset(offset).Find(&projectList).Error; err != nil {
+		return nil, err
+	}
+
+	pagination := &Pagination{
+		Projects:     projectList,
+		TotalPages:   totalPages,
+		TotalRecords: int(totalRecords),
+		CurrentPage:  page,
+	}
+
+	return pagination, nil
 }
 
 // Create creates a new project in the database.
@@ -38,8 +69,45 @@ func (p ProjectRepository) Create(ctx context.Context, pj *entities.Project) (*e
 	return pj, nil
 }
 
+// Update The function performs the following steps:
+// 1. Checks if a project with the given ID exists in the database.
+//   - If no project is found, it returns nil and an error indicating that the project was not found.
+//   - If an error occurs during the check, it returns nil and the error.
+//
+// 2. Updates the project in the database using the provided Project entity.
+//   - If an error occurs during the update, it returns nil and the error.
+//   - If no rows are affected (i.e., the project was not updated), it returns nil and an error indicating that the update might have failed.
+//
+// 3. Fetches the updated project from the database.
+//   - If an error occurs during the fetch, it returns nil and the error.
+//
+// 4. Returns the updated Project entity and nil.
 func (p ProjectRepository) Update(ctx context.Context, pj *entities.Project) (*entities.Project, error) {
-	panic("err")
+	// existing check
+	existingProject := entities.Project{}
+	result := p.db.WithContext(ctx).First(&existingProject, pj.ID)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, errors.New("project not found")
+		}
+		return nil, fmt.Errorf("error checking existing project: %w", result.Error)
+	}
+
+	result = p.db.WithContext(ctx).Model(pj).Updates(pj)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error updating project: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, errors.New("no rows affected, update might have failed")
+	}
+
+	updatedProject := &entities.Project{}
+	if err := p.db.WithContext(ctx).First(updatedProject, pj.ID).Error; err != nil {
+		return nil, fmt.Errorf("error fetching updated project: %w", err)
+	}
+
+	return updatedProject, nil
 }
 
 // Delete removes a project from the database by its name.
