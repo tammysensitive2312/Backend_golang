@@ -13,5 +13,5 @@ type Project struct {
 	ProjectEndedAt    *time.Time `gorm:"type:datetime"`
 	CreatedAt         time.Time  `gorm:"autoCreateTime"`
 	UpdatedAt         time.Time  `gorm:"autoUpdateTime"`
-	DeletedAt         time.Time  `gorm:"index"`
+	DeletedAt         *time.Time `gorm:"index"`
 }

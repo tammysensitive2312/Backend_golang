@@ -25,7 +25,7 @@ func NewInitDatabase(config *config.Config) (*gorm.DB, error) {
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Can not connect db with err %v"), err)
+		log.Fatal(fmt.Sprintf("Can not connect database with err %v"), err)
 		return nil, err
 	}
 	return gormDB, nil
