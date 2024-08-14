@@ -1,4 +1,4 @@
-package repositories_test
+package test_test
 
 import (
 	"Backend_golang_project/internal/domain/entities"
