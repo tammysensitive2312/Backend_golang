@@ -29,6 +29,7 @@ func NewRegisterRouters(p RegisterRoutersIn) {
 		userGroup := v1.Group("users")
 		{
 			userGroup.POST("/create", p.UserHandler.CreateNewUser)
+			userGroup.GET("/:id/projects", p.UserHandler.GetUserById)
 		}
 	}
 }

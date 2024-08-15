@@ -14,7 +14,7 @@ import (
 
 type IUserService interface {
 	Create(ctx context.Context, request *dto.CreateUserRequest) (*entities.User, error)
-	GetUserByID(ctx context.Context, ID int, preload bool) (*entities.User, error)
+	GetUserByID(ctx context.Context, ID int) (*entities.User, error)
 }
 
 type UserService struct {
@@ -49,8 +49,8 @@ func (u UserService) Create(ctx context.Context, request *dto.CreateUserRequest)
 	return data, nil
 }
 
-func (u UserService) GetUserByID(ctx context.Context, ID int, preload bool) (*entities.User, error) {
-	user, err := u.userRepository.GetUserById(ctx, ID, preload)
+func (u UserService) GetUserByID(ctx context.Context, ID int) (*entities.User, error) {
+	user, err := u.userRepository.GetUserById(ctx, ID)
 	if err != nil {
 		log.Error("Failed to get user by ID:", err)
 		return nil, err

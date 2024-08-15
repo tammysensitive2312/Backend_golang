@@ -12,6 +12,7 @@ type CreateUserRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=20,password_strength"`
 	Username string `json:"username" binding:"required"`
 
+	// tag dive dùng để đi sâu vào các cấu trúc dữ liệu lồng nhau
 	Projects []project.CreateProjectRequest `json:"projects,omitempty" binding:"dive"`
 }
 

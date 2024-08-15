@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type UserHandler struct {
@@ -16,6 +17,27 @@ func NewUserHandler(userService use_cases.IUserService) *UserHandler {
 	return &UserHandler{
 		userService: userService,
 	}
+}
+
+func (h *UserHandler) GetUserById(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	user, err := h.userService.GetUserByID(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user with projects", "details": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":       user.ID,
+			"username": user.Username,
+			"projects": user.Projects,
+		},
+	})
 }
 
 // CreateNewUser vẫn còn bug khi tạo user chứa json project thì chưa validate được các trường dữ liệu của
