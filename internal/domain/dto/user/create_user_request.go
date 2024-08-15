@@ -12,7 +12,7 @@ type CreateUserRequest struct {
 	Password string `json:"password" binding:"required,min=8,max=20,password_strength"`
 	Username string `json:"username" binding:"required"`
 
-	Projects []project.CreateProjectRequest `json:"projects,omitempty"`
+	Projects []project.CreateProjectRequest `json:"projects,omitempty" binding:"dive"`
 }
 
 func (req *CreateUserRequest) ToUserEntity(v *validator.Validate) (*entities.User, error) {
