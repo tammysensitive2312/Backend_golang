@@ -3,6 +3,7 @@ package test
 import (
 	"Backend_golang_project/internal/domain/dto/project"
 	"Backend_golang_project/internal/domain/entities"
+	"Backend_golang_project/internal/pkg"
 	"Backend_golang_project/internal/use_cases"
 
 	//"Backend_golang_project/internal/repositories"
@@ -17,6 +18,11 @@ import (
 // MockProjectRepository là một mock của IProjectRepository
 type MockProjectRepository struct {
 	mock.Mock
+}
+
+func (m *MockProjectRepository) GetList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (m *MockProjectRepository) Create(ctx context.Context, pj *entities.Project) (*entities.Project, error) {
