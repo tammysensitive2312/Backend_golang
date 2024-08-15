@@ -1,8 +1,9 @@
 package use_cases
 
 import (
-	"Backend_golang_project/internal/domain/dto"
+	"Backend_golang_project/internal/domain/dto/project"
 	"Backend_golang_project/internal/domain/entities"
+	"Backend_golang_project/internal/pkg"
 	"Backend_golang_project/internal/repositories"
 	"context"
 	"fmt"
@@ -10,18 +11,18 @@ import (
 )
 
 type IProjectService interface {
-	Create(ctx context.Context, request dto.CreateProjectRequest) (*entities.Project, error)
+	Create(ctx context.Context, request project.CreateProjectRequest) (*entities.Project, error)
 	Delete(ctx context.Context, name string) error
-	Update(ctx context.Context, id int, request dto.UpdateProjectRequest) (*entities.Project, error)
+	Update(ctx context.Context, id int, request project.UpdateProjectRequest) (*entities.Project, error)
 	GetById(ctx context.Context, id int) (*entities.Project, error)
-	GetProjectList(ctx context.Context, page int, pageSize int) (*repositories.Pagination, error)
+	GetProjectList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error)
 }
 
 type ProjectService struct {
 	projectRepository repositories.IProjectRepository
 }
 
-func (p ProjectService) GetProjectList(ctx context.Context, page int, pageSize int) (*repositories.Pagination, error) {
+func (p ProjectService) GetProjectList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error) {
 	pagination, err := p.projectRepository.GetList(ctx, page, pageSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get project list: %w", err)
@@ -29,15 +30,19 @@ func (p ProjectService) GetProjectList(ctx context.Context, page int, pageSize i
 	return pagination, nil
 }
 
-func (p ProjectService) Create(ctx context.Context, request dto.CreateProjectRequest) (*entities.Project, error) {
-	project := request.ToProjectEntity()
-	data, err := p.projectRepository.Create(ctx, project)
+func (p ProjectService) Create(ctx context.Context, request project.CreateProjectRequest) (*entities.Project, error) {
+	entity := request.ToProjectEntity()
+
+	if entity.ProjectEndedAt != nil && entity.ProjectEndedAt.Before(entity.ProjectStartedAt) {
+		return nil, fmt.Errorf("project ended time is invalid")
+	}
+	data, err := p.projectRepository.Create(ctx, entity)
 	if err != nil {
 		log.Error("Error in service.Create with error: ", err)
 		return nil, err
 	}
 
-	log.Info("Project created successfully", project)
+	log.Info("Project created successfully", entity)
 	return data, nil
 }
 
@@ -61,7 +66,7 @@ func (p ProjectService) Delete(ctx context.Context, name string) error {
 	}
 }
 
-func (p ProjectService) Update(ctx context.Context, id int, req dto.UpdateProjectRequest) (*entities.Project, error) {
+func (p ProjectService) Update(ctx context.Context, id int, req project.UpdateProjectRequest) (*entities.Project, error) {
 	// 1. Lấy project hiện tại từ repository
 	existingProject, err := p.projectRepository.GetById(ctx, id)
 	if err != nil {
@@ -89,12 +94,12 @@ func (p ProjectService) Update(ctx context.Context, id int, req dto.UpdateProjec
 }
 
 func (p ProjectService) GetById(ctx context.Context, id int) (*entities.Project, error) {
-	project, err := p.projectRepository.GetById(ctx, id)
+	getById, err := p.projectRepository.GetById(ctx, id)
 	if err != nil {
-		log.Error("Failed to get project by ID:", err)
+		log.Error("Failed to get getByIdproject by ID:", err)
 		return nil, err
 	}
-	return project, nil
+	return getById, nil
 }
 
 func NewProjectService(repository repositories.IProjectRepository) IProjectService {

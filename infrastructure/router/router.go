@@ -10,6 +10,7 @@ type RegisterRoutersIn struct {
 	fx.In
 	Engine         *gin.Engine
 	ProjectHandler *handlers.ProjectHandler
+	UserHandler    *handlers.UserHandler
 }
 
 func NewRegisterRouters(p RegisterRoutersIn) {
@@ -23,6 +24,11 @@ func NewRegisterRouters(p RegisterRoutersIn) {
 			projectGroup.DELETE("/:name", p.ProjectHandler.Delete)
 			projectGroup.PUT("/:id", p.ProjectHandler.Update)
 			projectGroup.GET("/all", p.ProjectHandler.GetProjects)
+		}
+
+		userGroup := v1.Group("users")
+		{
+			userGroup.POST("/create", p.UserHandler.CreateNewUser)
 		}
 	}
 }

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"Backend_golang_project/internal/domain/dto"
+	"Backend_golang_project/internal/domain/dto/project"
 	"Backend_golang_project/internal/use_cases"
 	"encoding/json"
 	"errors"
@@ -25,7 +25,7 @@ func NewProjectHandler(service use_cases.IProjectService) *ProjectHandler {
 }
 
 func (h *ProjectHandler) Create(ctx *gin.Context) {
-	var request dto.CreateProjectRequest
+	var request project.CreateProjectRequest
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
 		var syntaxError *json.SyntaxError
@@ -122,7 +122,7 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 	}
 
 	// 2. Bind JSON request body vào struct UpdateProjectRequest
-	var req dto.UpdateProjectRequest
+	var req project.UpdateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

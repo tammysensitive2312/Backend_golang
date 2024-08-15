@@ -24,11 +24,14 @@ func All() fx.Option {
 
 		//inject repository
 		fx.Provide(repositories.NewProjectRepository),
+		fx.Provide(repositories.NewUserRepository),
 
 		//inject service
 		fx.Provide(use_cases.NewProjectService),
+		fx.Provide(use_cases.NewUserService),
 
 		//inject controller
 		fx.Provide(handlers.NewProjectHandler),
+		fx.Provide(handlers.NewUserHandler),
 	)
 }

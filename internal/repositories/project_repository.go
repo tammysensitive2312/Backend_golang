@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"Backend_golang_project/internal/domain/entities"
+	"Backend_golang_project/internal/pkg"
 	"context"
 	"errors"
 	"fmt"
@@ -14,34 +15,47 @@ type IProjectRepository interface {
 	Update(ctx context.Context, pj *entities.Project) (*entities.Project, error)
 	Delete(ctx context.Context, name string) bool
 	GetById(ctx context.Context, id int) (*entities.Project, error)
-	GetList(ctx context.Context, page int, pageSize int) (*Pagination, error)
+	GetList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error)
 }
 
 type ProjectRepository struct {
 	base
 }
 
-func (p ProjectRepository) GetList(ctx context.Context, page int, pageSize int) (*Pagination, error) {
+// GetList retrieves a list of projects from the database based on pagination parameters.
+//
+// The function accepts a context, a page number, and a page size as parameters.
+// It uses the provided context to ensure that the operation is performed within the specified deadline.
+//
+// The function performs the following steps:
+// 1. Counts the total number of projects in the database.
+// 2. Calculates the total number of pages based on the total records and page size.
+// 3. Retrieves the list of projects for the specified page, using the provided page number and page size.
+//
+// The function returns a Pagination struct containing the list of projects, total pages, total records, and current page.
+// If an error occurs during the process, the function returns nil and the error.
+func (p ProjectRepository) GetList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error) {
 	var projectList []entities.Project
 	var totalRecords int64
 
-	// đếm tổng số bản ghi
+	// Count total records
 	if err := p.db.WithContext(ctx).Model(&entities.Project{}).Count(&totalRecords).Error; err != nil {
 		return nil, err
 	}
-	// tính số trang
+
+	// Calculate total pages
 	totalPages := int(totalRecords) / pageSize
 	if int(totalRecords)%pageSize != 0 {
 		totalPages++
 	}
 
-	// lấy dữ liệu cho trang hiện tại
+	// Retrieve data for the current page
 	offset := (page - 1) * pageSize
 	if err := p.db.WithContext(ctx).Limit(pageSize).Offset(offset).Find(&projectList).Error; err != nil {
 		return nil, err
 	}
 
-	pagination := &Pagination{
+	pagination := &pkg.Pagination{
 		Projects:     projectList,
 		TotalPages:   totalPages,
 		TotalRecords: int(totalRecords),

@@ -1,4 +1,4 @@
-package dto
+package project
 
 import (
 	"Backend_golang_project/internal/domain/entities"
@@ -7,10 +7,10 @@ import (
 
 type CreateProjectRequest struct {
 	Name             string     `json:"name" binding:"required,lte=255"`
-	Category         string     `json:"category"`
+	Category         string     `json:"category" binding:"required,valid_category"`
 	ProjectSpend     int        `json:"project_spend"`
 	ProjectVariance  int        `json:"project_variance"`
-	ProjectStartedAt time.Time  `json:"project_started_at"`
+	ProjectStartedAt time.Time  `json:"project_started_at" binding:"required,future_date"`
 	ProjectEndedAt   *time.Time `json:"project_ended_at"`
 }
 

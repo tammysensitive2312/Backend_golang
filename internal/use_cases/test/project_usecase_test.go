@@ -1,7 +1,7 @@
 package test
 
 import (
-	"Backend_golang_project/internal/domain/dto"
+	"Backend_golang_project/internal/domain/dto/project"
 	"Backend_golang_project/internal/domain/entities"
 	"Backend_golang_project/internal/use_cases"
 
@@ -44,7 +44,7 @@ func TestProjectService_Create(t *testing.T) {
 	service := use_cases.NewProjectService(mockRepo)
 
 	ctx := context.Background()
-	request := dto.CreateProjectRequest{
+	request := project.CreateProjectRequest{
 		Name: "Test Project",
 	}
 

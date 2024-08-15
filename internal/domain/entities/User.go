@@ -9,4 +9,6 @@ type User struct {
 	Username  string `gorm:"size:255;not null"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	Projects []Project `gorm:"many2many:user_projects;"`
 }

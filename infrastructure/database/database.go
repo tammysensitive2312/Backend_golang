@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"Backend_golang_project/infrastructure/config"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -27,6 +28,11 @@ func NewInitDatabase(config *config.Config) (*gorm.DB, error) {
 	if err != nil {
 		log.Fatal(fmt.Sprintf("Can not connect database with err %v"), err)
 		return nil, err
+	}
+
+	//err = gormDB.AutoMigrate(&entities.User{}, &entities.Project{})
+	if err != nil {
+		logrus.Fatal("failed to migrate database:", err)
 	}
 	return gormDB, nil
 }

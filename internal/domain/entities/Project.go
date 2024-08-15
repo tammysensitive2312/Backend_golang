@@ -14,4 +14,6 @@ type Project struct {
 	CreatedAt         time.Time  `gorm:"autoCreateTime"`
 	UpdatedAt         time.Time  `gorm:"autoUpdateTime"`
 	DeletedAt         *time.Time `gorm:"index"`
+
+	Users []User `gorm:"many2many:user_projects;"`
 }
