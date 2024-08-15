@@ -21,8 +21,11 @@ type MockProjectRepository struct {
 }
 
 func (m *MockProjectRepository) GetList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error) {
-	//TODO implement me
-	panic("implement me")
+	args := m.Called(ctx, page, pageSize)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*pkg.Pagination), args.Error(1)
 }
 
 func (m *MockProjectRepository) Create(ctx context.Context, pj *entities.Project) (*entities.Project, error) {
@@ -119,5 +122,60 @@ func TestProjectService_GetById_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Equal(t, expectedError, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestProjectService_GetProjectList(t *testing.T) {
+	mockRepo := new(MockProjectRepository)
+	service := use_cases.NewProjectService(mockRepo)
+
+	ctx := context.Background()
+	page := 1
+	pageSize := 10
+
+	expectedProjects := []entities.Project{
+		{ID: 1, Name: "Project 1"},
+		{ID: 2, Name: "Project 2"},
+	}
+
+	expectedPagination := &pkg.Pagination{
+		Projects:     expectedProjects,
+		TotalPages:   1,
+		TotalRecords: 2,
+		CurrentPage:  1,
+	}
+
+	mockRepo.On("GetList", ctx, page, pageSize).Return(expectedPagination, nil)
+
+	result, err := service.GetProjectList(ctx, page, pageSize)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedPagination, result)
+	assert.Len(t, result.Projects, 2)
+	assert.Equal(t, 1, result.TotalPages)
+	assert.Equal(t, 2, result.TotalRecords)
+	assert.Equal(t, 1, result.CurrentPage)
+
+	mockRepo.AssertExpectations(t)
+}
+
+func TestProjectService_GetProjectList_Error(t *testing.T) {
+	mockRepo := new(MockProjectRepository)
+	service := use_cases.NewProjectService(mockRepo)
+
+	ctx := context.Background()
+	page := 1
+	pageSize := 10
+
+	expectedError := errors.New("database error")
+
+	mockRepo.On("GetList", ctx, page, pageSize).Return((*pkg.Pagination)(nil), expectedError)
+
+	result, err := service.GetProjectList(ctx, page, pageSize)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to get project list")
+
 	mockRepo.AssertExpectations(t)
 }
