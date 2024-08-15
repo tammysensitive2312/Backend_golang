@@ -1,4 +1,4 @@
-package repositories
+package pkg
 
 import "Backend_golang_project/internal/domain/entities"
 
