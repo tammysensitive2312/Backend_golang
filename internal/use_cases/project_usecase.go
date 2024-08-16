@@ -1,7 +1,7 @@
 package use_cases
 
 import (
-	"Backend_golang_project/internal/domain/dto/project"
+	"Backend_golang_project/internal/domain/dto/request"
 	"Backend_golang_project/internal/domain/entities"
 	"Backend_golang_project/internal/pkg"
 	"Backend_golang_project/internal/repositories"
@@ -11,9 +11,9 @@ import (
 )
 
 type IProjectService interface {
-	Create(ctx context.Context, request project.CreateProjectRequest) (*entities.Project, error)
+	Create(ctx context.Context, request request.CreateProjectRequest) (*entities.Project, error)
 	Delete(ctx context.Context, name string) error
-	Update(ctx context.Context, id int, request project.UpdateProjectRequest) (*entities.Project, error)
+	Update(ctx context.Context, id int, request request.UpdateProjectRequest) (*entities.Project, error)
 	GetById(ctx context.Context, id int) (*entities.Project, error)
 	GetProjectList(ctx context.Context, page int, pageSize int) (*pkg.Pagination, error)
 }
@@ -30,7 +30,7 @@ func (p ProjectService) GetProjectList(ctx context.Context, page int, pageSize i
 	return pagination, nil
 }
 
-func (p ProjectService) Create(ctx context.Context, request project.CreateProjectRequest) (*entities.Project, error) {
+func (p ProjectService) Create(ctx context.Context, request request.CreateProjectRequest) (*entities.Project, error) {
 	entity := request.ToProjectEntity()
 
 	if entity.ProjectEndedAt != nil && entity.ProjectEndedAt.Before(entity.ProjectStartedAt) {
@@ -66,7 +66,7 @@ func (p ProjectService) Delete(ctx context.Context, name string) error {
 	}
 }
 
-func (p ProjectService) Update(ctx context.Context, id int, req project.UpdateProjectRequest) (*entities.Project, error) {
+func (p ProjectService) Update(ctx context.Context, id int, req request.UpdateProjectRequest) (*entities.Project, error) {
 	// 1. Lấy project hiện tại từ repository
 	existingProject, err := p.projectRepository.GetById(ctx, id)
 	if err != nil {

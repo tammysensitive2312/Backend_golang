@@ -10,7 +10,7 @@ import (
 )
 
 func connectDB() {
-	db, err := sql.Open("mysql", "?:?@tcp(localhost:3306)/?")
+	db, err := sql.Open("mysql", "root:truong@tcp(localhost:3306)/example_database_golang")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,7 +54,7 @@ func exportToCSV(db *sql.DB, filePath string) error {
 			return err
 		}
 
-		record := []string{strconv.Itoa(id), name, strconv.Itoa(projectSpend), strconv.Itoa(projectVariance), strconv.Itoa(revenueRecognised)}
+		record := []string{strconv.Itoa(id), name, category, strconv.Itoa(projectSpend), strconv.Itoa(projectVariance), strconv.Itoa(revenueRecognised)}
 		if err := writer.Write(record); err != nil {
 			return err
 		}

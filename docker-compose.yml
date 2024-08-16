@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: truong
+      MYSQL_DATABASE: example_database_golang
+      MYSQL_USER: root
+      MYSQL_PASSWORD: truong
+    ports:
+      - "3306:3306"
+    networks:
+      - backend-network
+
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=mysql-server
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=truong
+      - DB_NAME=example_database_golang
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge

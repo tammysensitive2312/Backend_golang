@@ -1,7 +1,6 @@
-package dto
+package request
 
 import (
-	"Backend_golang_project/internal/domain/dto/project"
 	"Backend_golang_project/internal/domain/entities"
 	"github.com/go-playground/validator/v10"
 	_ "time"
@@ -13,7 +12,7 @@ type CreateUserRequest struct {
 	Username string `json:"username" binding:"required"`
 
 	// tag dive dùng để đi sâu vào các cấu trúc dữ liệu lồng nhau
-	Projects []project.CreateProjectRequest `json:"projects,omitempty" binding:"dive"`
+	Projects []CreateProjectRequest `json:"projects,omitempty" binding:"dive"`
 }
 
 func (req *CreateUserRequest) ToUserEntity(v *validator.Validate) (*entities.User, error) {

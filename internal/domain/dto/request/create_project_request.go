@@ -1,4 +1,4 @@
-package project
+package request
 
 import (
 	"Backend_golang_project/internal/domain/entities"
