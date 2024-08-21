@@ -25,6 +25,7 @@ func All() fx.Option {
 		//inject repository
 		fx.Provide(repositories.NewProjectRepository),
 		fx.Provide(repositories.NewUserRepository),
+		fx.Provide(repositories.NewS3Repository),
 
 		//inject service
 		fx.Provide(use_cases.NewProjectService),

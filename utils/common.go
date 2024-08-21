@@ -40,7 +40,6 @@ func main() {
 
 		if !d.IsDir() && filepath.Ext(path) == ".csv" {
 			// Đọc dữ liệu từ file CSV
-			// Đọc dữ liệu từ file CSV
 			file, err := os.Open(path)
 			if err != nil {
 				return err

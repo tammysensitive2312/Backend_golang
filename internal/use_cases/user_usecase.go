@@ -8,7 +8,12 @@ import (
 	"Backend_golang_project/internal/pkg"
 	"Backend_golang_project/internal/repositories"
 	"context"
+	"encoding/csv"
+	"fmt"
 	"github.com/go-playground/validator/v10"
+	"io"
+	"os"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -18,15 +23,86 @@ type IUserService interface {
 	Create(ctx context.Context, request *dto.CreateUserRequest) (*entities.User, error)
 	GetUserByID(ctx context.Context, ID int) (*entities.User, error)
 	Login(cxt context.Context, req dto.LoginRequest) (string, string, error)
-	RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (string, error)
+	RefreshToken(req *dto.RefreshTokenRequest) (string, error)
+	ExportToS3(ctx context.Context, filename string) error
 }
 
 type UserService struct {
 	config         *config.Config
 	userRepository repositories.IUserRepository
+	s3repository   repositories.S3RepositoryInterface
 }
 
-func (u UserService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (string, error) {
+func (u UserService) ExportToS3(ctx context.Context, filename string) error {
+	bucket := u.config.S3Config.Bucket
+	// Tạo file tạm thời để lưu dữ liệu CSV
+	tempFile, err := os.CreateTemp("", "data-*.csv")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file: %v", err)
+	}
+	defer tempFile.Close()
+	defer os.Remove(tempFile.Name())
+
+	writer := csv.NewWriter(tempFile)
+	defer writer.Flush()
+
+	// Ghi header của CSV (tùy thuộc vào cấu trúc dữ liệu của bạn)
+	writer.Write([]string{"ID", "username", "email", "password", "created_at", "updated_at"}) // Thay đổi cho phù hợp với bảng của bạn
+
+	batchSize := 1000
+	offset := 0
+
+	for {
+		// Lấy dữ liệu từ cơ sở dữ liệu theo từng batch
+		data, err := u.userRepository.GetUsersBatch(ctx, batchSize, offset) // Cần implement phương thức này trong userRepository
+		if err != nil {
+			return fmt.Errorf("failed to fetch data from database: %v", err)
+		}
+
+		// Nếu không còn dữ liệu, thoát khỏi vòng lặp
+		if len(data) == 0 {
+			break
+		}
+
+		// Ghi từng record vào CSV
+		for _, user := range data {
+			row := []string{
+				strconv.Itoa(user.ID), // Thay bằng các trường dữ liệu thực tế của bạn
+				user.Username,
+				user.Email,
+				user.Password,
+				user.CreatedAt.Format("2006-01-02T15:04:05"),
+				user.UpdatedAt.Format("2006-01-02T15:04:05"),
+			}
+			if err := writer.Write(row); err != nil {
+				return fmt.Errorf("failed to write to csv: %v", err)
+			}
+		}
+
+		// Tăng offset để lấy batch tiếp theo
+		offset += batchSize
+	}
+
+	// Đảm bảo rằng tất cả các dữ liệu đã được ghi vào file
+	writer.Flush()
+	if err := writer.Error(); err != nil {
+		return fmt.Errorf("error flushing csv writer: %v", err)
+	}
+
+	// Reset con trỏ file về đầu để upload
+	if _, err := tempFile.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("failed to seek file: %v", err)
+	}
+
+	// Upload file CSV lên S3
+	if err := u.s3repository.UploadFile(bucket, filename, tempFile); err != nil {
+		return fmt.Errorf("failed to upload file to s3: %v", err)
+	}
+
+	return nil
+}
+
+func (u UserService) RefreshToken(req *dto.RefreshTokenRequest) (string, error) {
 	claims, err := jwt.ClaimRefreshToken(req.RefreshToken, u.config)
 	if err != nil {
 		log.Error("Invalid refresh token")
@@ -100,9 +176,10 @@ func (u *UserService) Login(ctx context.Context, req dto.LoginRequest) (string, 
 	return accessToken, refreshToken, nil
 }
 
-func NewUserService(config *config.Config, userRepository repositories.IUserRepository) IUserService {
+func NewUserService(config *config.Config, userRepository repositories.IUserRepository, s3repository repositories.S3RepositoryInterface) IUserService {
 	return &UserService{
 		config:         config,
 		userRepository: userRepository,
+		s3repository:   s3repository,
 	}
 }

@@ -13,10 +13,24 @@ type IUserRepository interface {
 	CreateUser(ctx context.Context, user *entities.User) (*entities.User, error)
 	GetUserById(ctx context.Context, ID int) (*entities.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
+	GetUsersBatch(ctx context.Context, offset, limit int) ([]*entities.User, error)
+	GetTotalCount(ctx context.Context) (int64, error)
 }
 
 type UserRepository struct {
 	base
+}
+
+func (u UserRepository) GetUsersBatch(ctx context.Context, offset, limit int) ([]*entities.User, error) {
+	var users []*entities.User
+	result := u.db.WithContext(ctx).Offset(offset).Limit(limit).Find(&users)
+	return users, result.Error
+}
+
+func (u UserRepository) GetTotalCount(ctx context.Context) (int64, error) {
+	var count int64
+	result := u.db.WithContext(ctx).Model(&entities.User{}).Count(&count)
+	return count, result.Error
 }
 
 func (u UserRepository) CreateUser(ctx context.Context, user *entities.User) (*entities.User, error) {
