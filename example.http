@@ -8,6 +8,10 @@ GET http://localhost:8080/golang-web/api/users/3/projects
 
 ###
 
+GET http://localhost:8080/golang-web/api/streaming
+
+###
+
 GET http://localhost:8080/golang-web/api/projects/all?page=1&pageSize=10
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZXhwIjoxNzI0MTI1NTQ4fQ.8hMCrXtsnbHuvx8f8gexfSgLpb1Hvl1mqlqOemm1Ro4
 ###

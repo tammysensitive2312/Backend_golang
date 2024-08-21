@@ -33,9 +33,7 @@ services:
       - AWS_DEFAULT_REGION=us-east-1
       - DEFAULT_OUTPUT_FORMAT:json
     entrypoint: /bin/sh
-    command: -c "while true; do sleep 30; done;"
+    command: -c "aws --endpoint-url=http://localstack:4566 s3 ls"
     depends_on:
       - localstack
-    volumes:
-      - E:/Backend_golang_project:/data
 

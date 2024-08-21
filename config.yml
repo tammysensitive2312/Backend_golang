@@ -65,6 +65,6 @@ zmf5uwxgRsXFs0gMglB39WuKNnQ+A1uHJaXQFnuMiVa99jQgdFplLrfli0c="
 s3:
   AWS_DEFAULT_REGION: "us-east-1"
   ENDPOINT: "http://localhost:4566"
-  BUCKET: "Golang-bucket"
+  BUCKET: "golang-bucket"
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
