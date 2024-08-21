@@ -20,7 +20,7 @@ type RegisterRoutersIn struct {
 func NewRegisterRouters(p RegisterRoutersIn) {
 	r := p.Engine
 	v1 := r.Group("/golang-web/api/")
-	v1.Use(middleware.LoggingMiddleware(), middleware.GinRecovery(true))
+	v1.Use(middleware.GinRecovery(true))
 	{
 		v1.POST("/refresh", p.UserHandler.RefreshToken)
 		projectGroup := v1.Group("projects")
