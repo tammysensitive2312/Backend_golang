@@ -2,51 +2,78 @@ package repositories
 
 import (
 	"Backend_golang_project/infrastructure/config"
-	"github.com/aws/aws-sdk-go/aws"
+	"context"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
 	"github.com/sirupsen/logrus"
 	"io"
 )
 
 type S3RepositoryInterface interface {
-	UploadFile(bucket, key string, body io.ReadSeeker) error
+	UploadFile(ctx context.Context, bucket, key string, body *io.PipeReader) error
 }
 
 type S3Repository struct {
-	service    *s3.S3
-	s3Uploader *s3manager.Uploader
+	s3Uploader *manager.Uploader
+	client     *s3.Client
 }
 
-func NewS3Repository(logger *logrus.Logger, cf *config.Config) (S3RepositoryInterface, error) {
-	awsConfig := &aws.Config{
-		Region: aws.String(cf.S3Config.Region),
-		Credentials: credentials.NewStaticCredentials(
+func NewS3Repository(ctx context.Context, logger *logrus.Logger, cf *config.Config) (S3RepositoryInterface, error) {
+	// Tạo AWS config
+	awsCfg, err := awsConfig.LoadDefaultConfig(ctx,
+		awsConfig.WithRegion(cf.S3Config.Region),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentials(
 			cf.S3Config.AwsId,
 			cf.S3Config.AwsKey,
-			"",
+			""),
 		),
-		Endpoint:         aws.String(cf.S3Config.Endpoint),
-		DisableSSL:       aws.Bool(true),
-		S3ForcePathStyle: aws.Bool(true),
-	}
-	session, err := session.NewSession(awsConfig)
+	)
 	if err != nil {
-		logger.Error("cannot create s3 client")
+		logger.WithError(err).Error("Failed to load AWS config")
+		return nil, err
 	}
+
+	// Tạo S3 client
+	// ở đây em sử dụng baseEndpoint là một phiên bản cải tiến hiện đại
+	// thay thế cho EndpointResolver
+	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+		o.BaseEndpoint = aws.String(cf.S3Config.Endpoint)
+	})
+
+	// Tạo S3 uploader
+	uploader := manager.NewUploader(client)
+
 	return &S3Repository{
-		service:    s3.New(session),
-		s3Uploader: s3manager.NewUploader(session),
-	}, err
+		client:     client,
+		s3Uploader: uploader,
+	}, nil
 }
 
-func (r *S3Repository) UploadFile(bucket, key string, body io.ReadSeeker) error {
-	_, err := r.service.PutObject(&s3.PutObjectInput{
+// UploadFile ở hàm này ban đầu em xử lý theo kiểu lưu trữ trước vào bộ nhớ rồi mới upload data lên s3
+// nhưng sau khi nhận thấy vấn đề với file lớn thì em tìm hiểu cách khác để xử lý và sử dụng s3 manager và nâng cấp aws sdk go v2
+func (r *S3Repository) UploadFile(ctx context.Context, bucket, key string, pipeReader *io.PipeReader) error {
+	// Cấu hình uploader với các tùy chọn
+	uploader := manager.NewUploader(r.client, func(u *manager.Uploader) {
+		u.PartSize = 5 * 1024 * 1024
+		u.Concurrency = 5
+	})
+
+	// Thực hiện upload
+	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(key),
-		Body:   body,
+		Body:   pipeReader,
 	})
+
+	// Đóng pipeReader sau khi hoàn thành
+	if pipeReader != nil {
+		pipeReader.Close()
+	}
+
 	return err
 }

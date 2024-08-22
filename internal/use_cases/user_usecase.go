@@ -8,12 +8,9 @@ import (
 	"Backend_golang_project/internal/pkg"
 	"Backend_golang_project/internal/repositories"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"io"
-	"os"
-	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -33,70 +30,56 @@ type UserService struct {
 	s3repository   repositories.S3RepositoryInterface
 }
 
-func (u UserService) ExportToS3(ctx context.Context, filename string) error {
+// ExportToS3
+/*
+tạo ra một goroutine query dữ liệu chạy concurrency vói mainroutine
+khi có dữ liệu pipeWriter sẽ ghi trực tiếp lên s3,
+trong khi query batch tiếp theo, batch trước đã được ghi dữ liệu lên s3
+*/
+func (u *UserService) ExportToS3(ctx context.Context, filename string) error {
+	// Tạo pipe để streaming
+	pipeReader, pipeWriter := io.Pipe()
+	defer pipeReader.Close()
+
+	// Goroutine để query dữ liệu từ database và ghi vào pipe
+	go func() {
+		defer pipeWriter.Close()
+
+		offset := 0
+		limit := 1000
+		for {
+			// Query dữ liệu từ database theo batch (1000)
+			users, err := u.userRepository.GetUsersBatch(ctx, offset, limit)
+			if err != nil {
+				pipeWriter.CloseWithError(err)
+				return
+			}
+
+			// Ghi dữ liệu vào pipe
+			for _, user := range users {
+				_, err := fmt.Fprintf(pipeWriter, "%d,%s,%s\n", user.ID, user.Username, user.Email)
+				if err != nil {
+					pipeWriter.CloseWithError(err)
+					return
+				}
+			}
+
+			// Tăng offset để lấy batch tiếp theo
+			offset += limit
+
+			// Nếu không còn dữ liệu thì thoát
+			if len(users) < limit {
+				return
+			}
+		}
+	}()
+
 	bucket := u.config.S3Config.Bucket
-	// Tạo file tạm thời để lưu dữ liệu CSV
-	tempFile, err := os.CreateTemp("", "data-*.csv")
+
+	// Upload lên S3
+	err := u.s3repository.UploadFile(ctx, bucket, filename, pipeReader)
 	if err != nil {
-		return fmt.Errorf("failed to create temp file: %v", err)
-	}
-	defer tempFile.Close()
-	defer os.Remove(tempFile.Name())
-
-	writer := csv.NewWriter(tempFile)
-	defer writer.Flush()
-
-	// Ghi header của CSV (tùy thuộc vào cấu trúc dữ liệu của bạn)
-	writer.Write([]string{"ID", "username", "email", "password", "created_at", "updated_at"}) // Thay đổi cho phù hợp với bảng của bạn
-
-	batchSize := 1000
-	offset := 0
-
-	for {
-		// Lấy dữ liệu từ cơ sở dữ liệu theo từng batch
-		data, err := u.userRepository.GetUsersBatch(ctx, batchSize, offset) // Cần implement phương thức này trong userRepository
-		if err != nil {
-			return fmt.Errorf("failed to fetch data from database: %v", err)
-		}
-
-		// Nếu không còn dữ liệu, thoát khỏi vòng lặp
-		if len(data) == 0 {
-			break
-		}
-
-		// Ghi từng record vào CSV
-		for _, user := range data {
-			row := []string{
-				strconv.Itoa(user.ID), // Thay bằng các trường dữ liệu thực tế của bạn
-				user.Username,
-				user.Email,
-				user.Password,
-				user.CreatedAt.Format("2006-01-02T15:04:05"),
-				user.UpdatedAt.Format("2006-01-02T15:04:05"),
-			}
-			if err := writer.Write(row); err != nil {
-				return fmt.Errorf("failed to write to csv: %v", err)
-			}
-		}
-
-		// Tăng offset để lấy batch tiếp theo
-		offset += batchSize
-	}
-
-	// Đảm bảo rằng tất cả các dữ liệu đã được ghi vào file
-	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return fmt.Errorf("error flushing csv writer: %v", err)
-	}
-
-	// Reset con trỏ file về đầu để upload
-	if _, err := tempFile.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("failed to seek file: %v", err)
-	}
-
-	// Upload file CSV lên S3
-	if err := u.s3repository.UploadFile(bucket, filename, tempFile); err != nil {
-		return fmt.Errorf("failed to upload file to s3: %v", err)
+		return err
 	}
 
 	return nil
