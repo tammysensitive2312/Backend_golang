@@ -110,11 +110,21 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	newAccessToken, err := h.userService.RefreshToken(c, &req)
+	newAccessToken, err := h.userService.RefreshToken(&req)
 	if err != nil {
 		pkg.AbortErrorHandleCustomMessage(c, 500, err.Error())
 		return
 	}
 
 	pkg.SuccessfulHandle(c, newAccessToken)
+}
+
+func (h *UserHandler) StreamingData(ctx *gin.Context) {
+	filename := "data_streaming.csv"
+
+	err := h.userService.ExportToS3(ctx.Request.Context(), filename)
+	if err != nil {
+		pkg.AbortErrorHandleCustomMessage(ctx, 500, err.Error())
+		return
+	}
 }

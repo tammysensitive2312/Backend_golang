@@ -61,3 +61,10 @@ J0YU95JinHt2BA16vSzrI51JLiOOOwxEdc61hEjZ8xdMGAYrblYyazKtSbHw0YHS
 zmf5uwxgRsXFs0gMglB39WuKNnQ+A1uHJaXQFnuMiVa99jQgdFplLrfli0c="
   expAT: 10
   expRT: 1440
+
+s3:
+  AWS_DEFAULT_REGION: "us-east-1"
+  ENDPOINT: "http://localhost:4566"
+  BUCKET: "golang-bucket"
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test

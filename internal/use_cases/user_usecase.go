@@ -8,7 +8,9 @@ import (
 	"Backend_golang_project/internal/pkg"
 	"Backend_golang_project/internal/repositories"
 	"context"
+	"fmt"
 	"github.com/go-playground/validator/v10"
+	"io"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -18,15 +20,72 @@ type IUserService interface {
 	Create(ctx context.Context, request *dto.CreateUserRequest) (*entities.User, error)
 	GetUserByID(ctx context.Context, ID int) (*entities.User, error)
 	Login(cxt context.Context, req dto.LoginRequest) (string, string, error)
-	RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (string, error)
+	RefreshToken(req *dto.RefreshTokenRequest) (string, error)
+	ExportToS3(ctx context.Context, filename string) error
 }
 
 type UserService struct {
 	config         *config.Config
 	userRepository repositories.IUserRepository
+	s3repository   repositories.S3RepositoryInterface
 }
 
-func (u UserService) RefreshToken(ctx context.Context, req *dto.RefreshTokenRequest) (string, error) {
+// ExportToS3
+/*
+tạo ra một goroutine query dữ liệu chạy concurrency vói mainroutine
+khi có dữ liệu pipeWriter sẽ ghi trực tiếp lên s3,
+trong khi query batch tiếp theo, batch trước đã được ghi dữ liệu lên s3
+*/
+func (u *UserService) ExportToS3(ctx context.Context, filename string) error {
+	// Tạo pipe để streaming
+	pipeReader, pipeWriter := io.Pipe()
+	defer pipeReader.Close()
+
+	// Goroutine để query dữ liệu từ database và ghi vào pipe
+	go func() {
+		defer pipeWriter.Close()
+
+		offset := 0
+		limit := 1000
+		for {
+			// Query dữ liệu từ database theo batch (1000)
+			users, err := u.userRepository.GetUsersBatch(ctx, offset, limit)
+			if err != nil {
+				pipeWriter.CloseWithError(err)
+				return
+			}
+
+			// Ghi dữ liệu vào pipe
+			for _, user := range users {
+				_, err := fmt.Fprintf(pipeWriter, "%d,%s,%s\n", user.ID, user.Username, user.Email)
+				if err != nil {
+					pipeWriter.CloseWithError(err)
+					return
+				}
+			}
+
+			// Tăng offset để lấy batch tiếp theo
+			offset += limit
+
+			// Nếu không còn dữ liệu thì thoát
+			if len(users) < limit {
+				return
+			}
+		}
+	}()
+
+	bucket := u.config.S3Config.Bucket
+
+	// Upload lên S3
+	err := u.s3repository.UploadFile(ctx, bucket, filename, pipeReader)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u UserService) RefreshToken(req *dto.RefreshTokenRequest) (string, error) {
 	claims, err := jwt.ClaimRefreshToken(req.RefreshToken, u.config)
 	if err != nil {
 		log.Error("Invalid refresh token")
@@ -100,9 +159,10 @@ func (u *UserService) Login(ctx context.Context, req dto.LoginRequest) (string, 
 	return accessToken, refreshToken, nil
 }
 
-func NewUserService(config *config.Config, userRepository repositories.IUserRepository) IUserService {
+func NewUserService(config *config.Config, userRepository repositories.IUserRepository, s3repository repositories.S3RepositoryInterface) IUserService {
 	return &UserService{
 		config:         config,
 		userRepository: userRepository,
+		s3repository:   s3repository,
 	}
 }

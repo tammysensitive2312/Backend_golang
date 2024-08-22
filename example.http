@@ -1,0 +1,49 @@
+### GET request to example server
+GET https://examples.http-client.intellij.net/get
+    ?generated-in=GoLand
+
+###
+
+GET http://localhost:8080/golang-web/api/users/3/projects
+
+###
+
+GET http://localhost:8080/golang-web/api/streaming
+
+###
+
+GET http://localhost:8080/golang-web/api/projects/all?page=1&pageSize=10
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZXhwIjoxNzI0MTI1NTQ4fQ.8hMCrXtsnbHuvx8f8gexfSgLpb1Hvl1mqlqOemm1Ro4
+###
+
+POST http://localhost:8080/golang-web/api/refresh
+Content-Type: application/json
+
+{
+"refresh_token": "xq-sQ3NQcrd3zOqhRecG8N5hejUU-kI4SgUWgWjC90MHWepN-oCLvN9gUgUBbCfBa2d9y0mcg5b2JD9zySbx_Wgd_KCSg1nEQPkqLNqAtaRJ5yZVKPG5RGL297BdRWVJFKamzywXnM_d5DfK6STqH3kGlEfGi6Qg2t6wmtyw_L5WrqbkuVLlIfyNJlYcmH0="
+}
+
+
+###
+
+POST http://localhost:8080/golang-web/api/users/login
+Content-Type: application/json
+
+    {
+    "email": "thomasnguyen@gmail.com",
+    "password": "Thomasnguyen2312"
+    }
+
+###
+
+POST http://localhost:8080/golang-web/api/projects/create
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZXhwIjoxNzI0MTI2MjMwfQ.LBZNH-2fGeDvpgmWYtIp-JdKZtcIBB0XU4qtpzx0Cgo
+
+{
+  "name": "Project Elizabeth",
+  "category": "non-billable",
+  "project_spend": 5000,
+  "project_variance": 30,
+  "project_started_at": "2024-08-20T13:00:00Z",
+  "project_ended_at": "2024-08-30T10:00:00Z"
+}
