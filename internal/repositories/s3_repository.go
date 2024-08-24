@@ -5,9 +5,10 @@ import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go/aws/credentials"
+	//"github.com/aws/aws-sdk-go/aws/credentials"
 
 	"github.com/sirupsen/logrus"
 	"io"
@@ -26,7 +27,7 @@ func NewS3Repository(ctx context.Context, logger *logrus.Logger, cf *config.Conf
 	// Tạo AWS config
 	awsCfg, err := awsConfig.LoadDefaultConfig(ctx,
 		awsConfig.WithRegion(cf.S3Config.Region),
-		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentials(
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			cf.S3Config.AwsId,
 			cf.S3Config.AwsKey,
 			""),
