@@ -8,6 +8,7 @@ import (
 	"Backend_golang_project/internal/handlers"
 	"Backend_golang_project/internal/repositories"
 	"Backend_golang_project/internal/use_cases"
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/fx"
@@ -27,6 +28,7 @@ func All() fx.Option {
 		fx.Provide(repositories.NewProjectRepository),
 		fx.Provide(repositories.NewUserRepository),
 		fx.Provide(logrus.New),
+		fx.Provide(context.Background),
 		fx.Provide(repositories.NewS3Repository),
 
 		//inject service
